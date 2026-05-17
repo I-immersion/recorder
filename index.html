@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>LUMIIA Podcast Recorder</title>
+<style>
+  :root {
+    --bg: #0a0a1e;
+    --panel: #14142b;
+    --panel2: #1c1c3a;
+    --border: #2a2a4a;
+    --text: #e8e8ff;
+    --muted: #7a7a9a;
+    --orange: #FF6B35;
+    --cyan: #00D4FF;
+    --magenta: #FF00B8;
+    --purple: #9C27FF;
+    --green: #00E676;
+    --red: #FF1744;
+    --yellow: #FFD600;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* ─── Top bar ─────────────────────────────────────────── */
+  header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: linear-gradient(90deg, #0a0a1e, #14142b);
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .logo {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--orange);
+  }
+  .logo .small { color: var(--muted); font-weight: 400; font-size: 12px; letter-spacing: 1px; margin-left: 8px; }
+  .logo .version { color: var(--cyan); font-weight: 500; font-size: 11px; margin-left: 8px; opacity: 0.8; }
+  .state-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--panel2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .state-badge.recording { background: var(--red); color: #fff; border-color: var(--red); animation: pulse 1.4s ease-in-out infinite; }
+  .state-badge.paused { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.6); } 50% { box-shadow: 0 0 0 8px rgba(255, 23, 68, 0); } }
+
+  .timer {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-left: auto;
+  }
+  .timer.recording { color: var(--red); }
+  header button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  header button:hover { color: var(--text); border-color: var(--cyan); }
+
+  /* ─── Setup screen ────────────────────────────────────── */
+  .setup {
+    flex: 1;
+    overflow: auto;
+    padding: 40px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+  }
+  .setup-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    z-index: 10;
+  }
+  .setup-close:hover { color: var(--text); border-color: var(--cyan); background: var(--panel2); }
+  .save-indicator {
+    position: absolute;
+    top: 28px;
+    right: 70px;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .save-indicator.show { opacity: 1; }
+  .setup h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+  .setup h2 .num { color: var(--orange); margin-right: 10px; }
+  .setup-row {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .setup-row label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .setup-row select, .setup-row input[type=text], .setup-row input[type=number] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .setup-row select:focus, .setup-row input:focus { outline: none; border-color: var(--cyan); }
+  .pair-options { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pair-option {
+    flex: 1;
+    min-width: 130px;
+    padding: 14px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .pair-option:hover { border-color: var(--cyan); }
+  .pair-option.selected { border-color: var(--orange); background: rgba(255, 107, 53, 0.1); }
+  .pair-option .num { font-size: 24px; font-weight: 800; color: var(--orange); }
+  .pair-option .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row-3col { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+
+  .output-dir {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .output-dir .path {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .output-dir button { padding: 10px 16px; background: var(--cyan); color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+  .setup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 12px;
+  }
+  .btn-primary {
+    padding: 12px 28px;
+    background: var(--orange);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    padding: 12px 24px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn-secondary:hover { border-color: var(--cyan); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ─── Main screen ─────────────────────────────────────── */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    overflow: hidden;
+  }
+  .left {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: auto;
+  }
+  .right {
+    padding: 20px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  /* Session info bar */
+  .session-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .session-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+    font-family: inherit;
+  }
+  .session-bar input::placeholder { color: var(--muted); }
+  .session-bar .info { font-size: 12px; color: var(--muted); }
+
+  /* Tracks editor (v1.2) */
+  .tracks-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .track-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 70px 1.2fr;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .track-row.is-disabled { opacity: 0.45; }
+  .track-row.is-invalid  { border-color: var(--red); }
+  .track-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--cyan); }
+  .track-row input.track-name {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .track-row input.track-name:focus { outline: none; border-color: var(--cyan); }
+  .track-row .track-kind {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .track-row .track-kind.stereo { color: var(--orange, #f6a04d); }
+  .track-row select {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* Exports grid (v1.2) */
+  .exports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .exp-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+  .exp-opt:hover { border-color: var(--cyan); }
+  .exp-opt input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--cyan); }
+
+  /* VU meters verticaux façon console */
+  .vu-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    align-items: stretch;
+    min-height: 240px;
+    max-height: 360px;
+    overflow-x: auto;
+  }
+  .vu-strip {
+    flex: 1;
+    min-width: 70px;
+    max-width: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .vu-strip-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .vu-pair {
+    flex: 1;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    min-height: 0;
+  }
+  .vu-channel-v {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column-reverse; /* fill remplit du bas vers le haut */
+  }
+  .vu-fill-v {
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(to top, var(--green) 0%, var(--green) 60%, var(--yellow) 75%, var(--red) 90%);
+    transition: height 0.05s linear;
+  }
+  .vu-channel-v.clipping .vu-fill-v { background: var(--red); }
+  .vu-channel-label {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  /* graduations de niveau, repère 0/-6/-12/-24 dB */
+  .vu-scale {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -16px;
+    width: 14px;
+    font-size: 8px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .vu-scale span { position: absolute; right: 0; }
+
+  /* Transport */
+  .transport {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .btn-rec {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--red) 0%, #b00d2f 100%);
+    border: 4px solid #ff5a7a;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 24px rgba(255, 23, 68, 0.4);
+    transition: transform 0.1s;
+  }
+  .btn-rec:hover { transform: scale(1.05); }
+  .btn-rec.recording { background: radial-gradient(circle, #000 0%, #1a0008 100%); border-color: var(--red); animation: pulseRec 1.2s ease-in-out infinite; }
+  @keyframes pulseRec {
+    0%, 100% { box-shadow: 0 0 24px rgba(255, 23, 68, 0.4); }
+    50% { box-shadow: 0 0 40px rgba(255, 23, 68, 0.8); }
+  }
+  .btn-stop, .btn-pause {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--panel2);
+    border: 2px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-stop:hover { border-color: var(--red); color: var(--red); }
+  .btn-pause:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn-stop:disabled, .btn-pause:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Markers panel */
+  .panel-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-title::before { content: ''; width: 4px; height: 12px; background: var(--cyan); border-radius: 2px; }
+
+  .marker-input {
+    display: flex;
+    gap: 6px;
+  }
+  .marker-input input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .marker-input input:focus { outline: none; border-color: var(--orange); }
+  .marker-input button {
+    padding: 8px 14px;
+    background: var(--orange);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .marker-input button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .marker-list {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 6px;
+    max-height: 200px;
+  }
+  .marker-item {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .marker-item:hover { background: var(--panel2); }
+  .marker-time {
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--orange);
+    font-weight: 700;
+  }
+
+  /* History */
+  .history {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 4px;
+  }
+  .history-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .history-item:hover { border-color: var(--cyan); }
+  .history-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    opacity: 0;
+    padding: 0;
+  }
+  .history-item:hover .history-delete { opacity: 1; }
+  .history-delete:hover { background: var(--red); color: #fff; border-color: var(--red); }
+  .history-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-meta {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+  }
+  .history-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .history-actions button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .history-actions button:hover { border-color: var(--cyan); color: var(--text); }
+
+  .toast {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: var(--panel2);
+    border: 1px solid var(--cyan);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+    transition: all 0.2s;
+  }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast.error { border-color: var(--red); }
+
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LUMIIA<span class="small">PODCAST RECORDER</span><span class="version" id="app-version"></span></div>
+  <div class="state-badge" id="state-badge">IDLE</div>
+  <div class="timer" id="timer">00:00:00</div>
+  <button id="btn-config" class="hide">Configuration</button>
+</header>
+
+<!-- ─── Setup screen ─────────────────────────────────────── -->
+<div class="setup" id="setup-screen">
+
+  <button class="setup-close hide" id="btn-close-config" title="Fermer (modifs sauvées automatiquement)">✕</button>
+  <div class="save-indicator" id="save-indicator">Sauvegardé</div>
+
+  <div class="setup-row">
+    <h2><span class="num">1.</span>Interface audio</h2>
+    <label>Périphérique d'entrée (Wing USB, etc.)</label>
+    <select id="device-select"><option>Chargement…</option></select>
+    <div class="hint" id="device-hint">Au premier lancement, autorise l'accès au microphone pour que les noms d'interfaces apparaissent.</div>
+    <div class="hint" id="device-capabilities" style="margin-top:6px; color:var(--cyan); font-weight:500;">—</div>
+  </div>
+
+  <div class="setup-row">
+    <h2><span class="num">2.</span>Pistes audio</h2>
+    <label>Active, renomme et assigne le canal source de chaque piste</label>
+    <div class="tracks-editor" id="tracks-editor"><!-- généré par renderTracksEditor() --></div>
+    <div class="hint">Pistes mono = 1 canal source → 1 fichier WAV mono. Pistes stéréo = 2 canaux → 1 fichier WAV stéréo. Une piste désactivée n'est pas enregistrée.</div>
+  </div>
+
+  <div class="setup-row">
+    <h2><span class="num">3.</span>Exports</h2>
+    <label>Que générer en fin de session ?</label>
+    <div class="exports-grid" id="exports-grid">
+      <label class="exp-opt"><input type="checkbox" data-exp="masterWav"><span>Master stéréo WAV</span></label>
+      <label class="exp-opt"><input type="checkbox" data-exp="masterMp3"><span>Master stéréo MP3 320k</span></label>
+      <label class="exp-opt"><input type="checkbox" data-exp="stemsWav"><span>Pistes individuelles WAV (live)</span></label>
+      <label class="exp-opt"><input type="checkbox" data-exp="stemsMp3"><span>Pistes individuelles MP3 320k</span></label>
+    </div>
+    <div class="hint">Le master est un mixdown ffmpeg de toutes les pistes actives (amix + limiter -0.5 dB). Les WAV sont écrits en live, les MP3 générés après stop.</div>
+  </div>
+
+  <div class="setup-row">
+    <h2><span class="num">4.</span>Dossier de sortie</h2>
+    <label>Où sauvegarder les enregistrements</label>
+    <div class="output-dir">
+      <div class="path" id="output-path">—</div>
+      <button id="btn-choose-dir">Changer…</button>
+    </div>
+    <div class="hint">Un sous-dossier sera créé pour chaque session (date_heure_titre).</div>
+  </div>
+
+  <div class="setup-row">
+    <h2><span class="num">5.</span>OSC (Chataigne)</h2>
+    <div class="row-3col">
+      <div>
+        <label>Port IN (depuis Chataigne)</label>
+        <input type="number" id="osc-in-port" min="1" max="65535">
+      </div>
+      <div>
+        <label>OSC OUT host</label>
+        <input type="text" id="osc-out-host">
+      </div>
+      <div>
+        <label>OSC OUT port</label>
+        <input type="number" id="osc-out-port" min="1" max="65535">
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Port OSCQuery (HTTP, découverte Chataigne)</label>
+      <input type="number" id="osc-query-port" min="1" max="65535" style="max-width:200px;">
+    </div>
+    <div class="hint">Commandes IN : /podcast/rec, /podcast/stop, /podcast/pause, /podcast/marker, /podcast/new<br>Messages OUT : /podcast/state, /podcast/level/{1..N}, /podcast/duration, /podcast/marker<br><span style="color:var(--cyan);">OSCQuery actif</span> : Chataigne peut découvrir automatiquement l'app via mDNS Bonjour (service <code>_oscjson._tcp</code>).</div>
+  </div>
+
+  <div class="setup-actions" id="setup-actions">
+    <button class="btn-primary" id="btn-validate">Démarrer l'enregistreur</button>
+  </div>
+</div>
+
+<!-- ─── Main screen ──────────────────────────────────────── -->
+<div class="main hide" id="main-screen">
+  <div class="left">
+
+    <div class="session-bar">
+      <input id="session-title" type="text" placeholder="Titre de la session (optionnel)" maxlength="60">
+      <div class="info" id="session-info"></div>
+    </div>
+
+    <div class="vu-grid" id="vu-grid"></div>
+
+    <div class="transport">
+      <button class="btn-pause" id="btn-pause" disabled>PAUSE</button>
+      <button class="btn-rec" id="btn-rec">REC</button>
+      <button class="btn-stop" id="btn-stop" disabled>STOP</button>
+    </div>
+
+  </div>
+
+  <div class="right">
+    <div>
+      <div class="panel-title">Marqueurs (touche M)</div>
+      <div class="marker-input">
+        <input type="text" id="marker-note" placeholder="Note rapide…" maxlength="80">
+        <button id="btn-marker" disabled>+ Add</button>
+      </div>
+      <div class="marker-list" id="marker-list"></div>
+    </div>
+
+    <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div class="panel-title">Historique des sessions</div>
+      <div class="history" id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ─── State global ─────────────────────────────────────────
+let config = null;
+let availableDevices = []; // liste retournée par main (naudiodon)
+let isRecording = false;
+let isPaused = false;
+let recordingStartMs = 0;
+let recordingPausedMs = 0;
+let pauseStartMs = 0;
+let timerInterval = null;
+let activeTracks = []; // tracks reçues de audio:open (filtered enabled + valid channel)
+let lastPeaks = [];
+let audioStateInfo = { isOpen: false, channels: 0, sampleRate: 0 };
+
+// ─── Toast ────────────────────────────────────────────────
+const toastEl = document.getElementById('toast');
+let toastTimer;
+function toast(msg, isError) {
+  toastEl.textContent = msg;
+  toastEl.classList.toggle('error', !!isError);
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
+}
+
+// ─── Format helpers ───────────────────────────────────────
+function fmtHMS(seconds) {
+  if (!isFinite(seconds) || seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ─── Setup screen wiring ──────────────────────────────────
+const deviceSelect = document.getElementById('device-select');
+const deviceHint = document.getElementById('device-hint');
+const deviceCapabilities = document.getElementById('device-capabilities');
+const tracksEditor = document.getElementById('tracks-editor');
+const exportsGrid = document.getElementById('exports-grid');
+const outputPath = document.getElementById('output-path');
+const btnChooseDir = document.getElementById('btn-choose-dir');
+const oscInPort = document.getElementById('osc-in-port');
+const oscOutHost = document.getElementById('osc-out-host');
+const oscOutPort = document.getElementById('osc-out-port');
+const oscQueryPort = document.getElementById('osc-query-port');
+const btnValidate = document.getElementById('btn-validate');
+const btnCloseConfig = document.getElementById('btn-close-config');
+const btnConfig = document.getElementById('btn-config');
+const saveIndicator = document.getElementById('save-indicator');
+const setupActions = document.getElementById('setup-actions');
+
+let isReconfiguring = false;
+let saveIndicatorTimer = null;
+
+function flashSaveIndicator() {
+  saveIndicator.classList.add('show');
+  clearTimeout(saveIndicatorTimer);
+  saveIndicatorTimer = setTimeout(() => saveIndicator.classList.remove('show'), 1500);
+}
+
+async function autoSaveConfig() {
+  if (!isReconfiguring) return; // pas d'auto-save au premier lancement
+  await window.api.config.set({
+    deviceId: deviceSelect.value || null,
+    deviceLabel: deviceSelect.options[deviceSelect.selectedIndex]?.text || '',
+    tracks: config.tracks,
+    exports: config.exports,
+    outputDir: config.outputDir,
+    oscInPort: parseInt(oscInPort.value, 10) || 7777,
+    oscOutHost: oscOutHost.value.trim() || '127.0.0.1',
+    oscOutPort: parseInt(oscOutPort.value, 10) || 7000,
+    oscQueryPort: parseInt(oscQueryPort.value, 10) || 7778
+  });
+  config = await window.api.config.get();
+  flashSaveIndicator();
+}
+
+async function refreshDevices() {
+  try {
+    availableDevices = await window.api.audio.listDevices();
+  } catch (e) {
+    availableDevices = [];
+  }
+  deviceSelect.innerHTML = '';
+  if (availableDevices.length === 0) {
+    const opt = document.createElement('option');
+    opt.textContent = '(aucun périphérique détecté — naudiodon2 installé ?)';
+    deviceSelect.appendChild(opt);
+    deviceHint.textContent = 'Si la liste est vide, vérifie que naudiodon2 est installé : npm install dans le dossier Recorder.';
+    return;
+  }
+  deviceHint.textContent = 'Tous les périphériques d\'entrée listés ci-dessous sont vus directement via PortAudio (CoreAudio sur Mac).';
+  availableDevices.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = String(d.id);
+    const sr = d.defaultSampleRate ? `${Math.round(d.defaultSampleRate)} Hz` : '?';
+    opt.textContent = `${d.name} — ${d.maxChannels} canal(aux) max · ${sr}`;
+    deviceSelect.appendChild(opt);
+  });
+  // Restaurer la sélection précédente
+  if (config.deviceId !== null && config.deviceId !== undefined) {
+    const found = availableDevices.find(d => String(d.id) === String(config.deviceId));
+    if (found) deviceSelect.value = String(found.id);
+  }
+}
+
+function getSelectedDevice() {
+  const id = deviceSelect.value;
+  return availableDevices.find(d => String(d.id) === String(id)) || null;
+}
+
+function updateDeviceCapabilitiesHint() {
+  const d = getSelectedDevice();
+  if (!d) {
+    deviceCapabilities.textContent = '—';
+    return;
+  }
+  deviceCapabilities.textContent = `${d.name} : ${d.maxChannels} canal(aux) disponibles`;
+  deviceCapabilities.style.color = d.maxChannels >= 4 ? 'var(--green)' : 'var(--yellow)';
+  // Re-render le tracks editor pour adapter les selects de canal aux capacités du device
+  renderTracksEditor();
+}
+
+// ─── Tracks editor (v1.2) ─────────────────────────────────
+function renderTracksEditor() {
+  if (!config || !config.tracks) return;
+  const device = getSelectedDevice();
+  const maxCh = device ? device.maxChannels : 8;
+
+  tracksEditor.innerHTML = '';
+  config.tracks.forEach((t, idx) => {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    row.dataset.trackId = t.id;
+    if (!t.enabled) row.classList.add('is-disabled');
+
+    // Vérif canal valide
+    const isMono = t.kind === 'mono';
+    const usedChannels = isMono ? [t.channel] : (t.channels || []);
+    const invalid = usedChannels.some(c => c < 0 || c >= maxCh);
+    if (invalid && t.enabled) row.classList.add('is-invalid');
+
+    // 1. Checkbox enabled
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!t.enabled;
+    cb.addEventListener('change', () => {
+      config.tracks[idx].enabled = cb.checked;
+      row.classList.toggle('is-disabled', !cb.checked);
+      autoSaveConfig();
+    });
+    row.appendChild(cb);
+
+    // 2. Input nom
+    const nameIn = document.createElement('input');
+    nameIn.type = 'text';
+    nameIn.className = 'track-name';
+    nameIn.value = t.name;
+    nameIn.maxLength = 30;
+    nameIn.addEventListener('change', () => {
+      config.tracks[idx].name = nameIn.value.trim() || (isMono ? 'Voix' : 'Stéréo');
+      autoSaveConfig();
+    });
+    row.appendChild(nameIn);
+
+    // 3. Type
+    const kindLbl = document.createElement('span');
+    kindLbl.className = 'track-kind' + (isMono ? '' : ' stereo');
+    kindLbl.textContent = isMono ? 'mono' : 'stéréo';
+    row.appendChild(kindLbl);
+
+    // 4. Select canal source
+    const sel = document.createElement('select');
+    if (isMono) {
+      for (let c = 0; c < maxCh; c++) {
+        const opt = document.createElement('option');
+        opt.value = String(c);
+        opt.textContent = `Canal ${c + 1}`;
+        if (c === t.channel) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', () => {
+        config.tracks[idx].channel = parseInt(sel.value, 10);
+        row.classList.remove('is-invalid');
+        autoSaveConfig();
+      });
+    } else {
+      // Stéréo : paires successives
+      for (let p = 0; p < Math.floor(maxCh / 2); p++) {
+        const opt = document.createElement('option');
+        opt.value = `${p * 2},${p * 2 + 1}`;
+        opt.textContent = `Canaux ${p * 2 + 1}+${p * 2 + 2}`;
+        const tc = t.channels || [0, 1];
+        if (tc[0] === p * 2 && tc[1] === p * 2 + 1) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', () => {
+        const [l, r] = sel.value.split(',').map(n => parseInt(n, 10));
+        config.tracks[idx].channels = [l, r];
+        row.classList.remove('is-invalid');
+        autoSaveConfig();
+      });
+    }
+    row.appendChild(sel);
+
+    tracksEditor.appendChild(row);
+  });
+}
+
+// ─── Exports editor (v1.2) ────────────────────────────────
+function renderExports() {
+  if (!config || !config.exports) return;
+  exportsGrid.querySelectorAll('input[type="checkbox"][data-exp]').forEach(cb => {
+    const key = cb.dataset.exp;
+    cb.checked = !!config.exports[key];
+    // Re-bind défensif (évite doubles listeners en cas de re-render)
+    const newCb = cb.cloneNode(true);
+    cb.parentNode.replaceChild(newCb, cb);
+    newCb.addEventListener('change', () => {
+      config.exports[key] = newCb.checked;
+      autoSaveConfig();
+    });
+  });
+}
+
+btnChooseDir.addEventListener('click', async () => {
+  const newDir = await window.api.config.chooseOutputDir();
+  if (newDir) {
+    config.outputDir = newDir;
+    outputPath.textContent = newDir;
+    if (isReconfiguring) flashSaveIndicator();
+  }
+});
+
+// Auto-save sur changement device et ports OSC
+deviceSelect.addEventListener('change', async () => {
+  await autoSaveConfig();
+  updateDeviceCapabilitiesHint();
+});
+oscInPort.addEventListener('change', autoSaveConfig);
+oscOutHost.addEventListener('change', autoSaveConfig);
+oscOutPort.addEventListener('change', autoSaveConfig);
+oscQueryPort.addEventListener('change', autoSaveConfig);
+
+// Premier lancement : bouton "Démarrer l'enregistreur" valide et passe en main screen
+btnValidate.addEventListener('click', async () => {
+  await window.api.config.set({
+    deviceId: deviceSelect.value || null,
+    deviceLabel: deviceSelect.options[deviceSelect.selectedIndex]?.text || '',
+    tracks: config.tracks,
+    exports: config.exports,
+    outputDir: config.outputDir,
+    oscInPort: parseInt(oscInPort.value, 10) || 7777,
+    oscOutHost: oscOutHost.value.trim() || '127.0.0.1',
+    oscOutPort: parseInt(oscOutPort.value, 10) || 7000,
+    oscQueryPort: parseInt(oscQueryPort.value, 10) || 7778,
+    firstRun: false
+  });
+  config = await window.api.config.get();
+  await enterMainScreen();
+});
+
+// Re-config en cours d'utilisation : croix en haut à droite ferme et applique
+btnCloseConfig.addEventListener('click', async () => {
+  // L'auto-save a déjà tout sauvegardé, on bascule juste vers main-screen
+  // et on re-setup l'audio si le device ou pairs a changé
+  isReconfiguring = false;
+  await enterMainScreen();
+});
+
+btnConfig.addEventListener('click', () => {
+  if (isRecording) {
+    toast("Stop d'abord l'enregistrement", true);
+    return;
+  }
+  // Mode reconfiguration : croix visible, bouton "Démarrer" caché, auto-save actif
+  isReconfiguring = true;
+  oscInPort.value = config.oscInPort;
+  oscOutHost.value = config.oscOutHost;
+  oscOutPort.value = config.oscOutPort;
+  oscQueryPort.value = config.oscQueryPort || 7778;
+  outputPath.textContent = config.outputDir;
+  renderTracksEditor();
+  renderExports();
+  document.getElementById('setup-screen').classList.remove('hide');
+  document.getElementById('main-screen').classList.add('hide');
+  btnConfig.classList.add('hide');
+  btnCloseConfig.classList.remove('hide');
+  setupActions.classList.add('hide');
+  refreshDevices().then(() => updateDeviceCapabilitiesHint());
+});
+
+// ─── Main screen wiring ───────────────────────────────────
+const vuGrid = document.getElementById('vu-grid');
+const btnRec = document.getElementById('btn-rec');
+const btnStop = document.getElementById('btn-stop');
+const btnPause = document.getElementById('btn-pause');
+const btnMarker = document.getElementById('btn-marker');
+const markerNote = document.getElementById('marker-note');
+const markerList = document.getElementById('marker-list');
+const historyList = document.getElementById('history-list');
+const sessionTitle = document.getElementById('session-title');
+const sessionInfo = document.getElementById('session-info');
+const stateBadge = document.getElementById('state-badge');
+const timerEl = document.getElementById('timer');
+
+function buildVUMeters(tracks) {
+  vuGrid.innerHTML = '';
+  tracks.forEach((t, ti) => {
+    const strip = document.createElement('div');
+    strip.className = 'vu-strip';
+    if (t.kind === 'mono') {
+      strip.innerHTML = `
+        <div class="vu-pair" style="grid-template-columns: 1fr;">
+          <div class="vu-channel-v" id="vu-${ti}-0">
+            <div class="vu-fill-v"></div>
+            <div class="vu-channel-label">M</div>
+          </div>
+        </div>
+        <div class="vu-strip-label">${escapeHtml(t.name)}</div>
+      `;
+    } else {
+      strip.innerHTML = `
+        <div class="vu-pair">
+          <div class="vu-channel-v" id="vu-${ti}-0">
+            <div class="vu-fill-v"></div>
+            <div class="vu-channel-label">L</div>
+          </div>
+          <div class="vu-channel-v" id="vu-${ti}-1">
+            <div class="vu-fill-v"></div>
+            <div class="vu-channel-label">R</div>
+          </div>
+        </div>
+        <div class="vu-strip-label">${escapeHtml(t.name)}</div>
+      `;
+    }
+    vuGrid.appendChild(strip);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function updateVUMeters(peaks) {
+  // peaks = flat array dans l'ordre des activeTracks
+  //   mono : 1 valeur ; stéréo : 2 valeurs (L, R)
+  // Courbe dB linéaire : floor -48dB → 0%, 0dB → 100%.
+  // Le gradient CSS gère les zones de couleur. Clip à -0.1dB.
+  lastPeaks = peaks;
+  const FLOOR_DB = -48;
+  const FLOOR_LIN = Math.pow(10, FLOOR_DB / 20);
+  let peakIdx = 0;
+  activeTracks.forEach((t, ti) => {
+    const numCh = t.kind === 'mono' ? 1 : 2;
+    for (let k = 0; k < numCh; k++) {
+      const el = document.getElementById(`vu-${ti}-${k}`);
+      const peak = peaks[peakIdx++] || 0;
+      if (!el) continue;
+      const fill = el.querySelector('.vu-fill-v');
+      if (!fill) continue;
+      let pct = 0;
+      if (peak > FLOOR_LIN) {
+        const db = 20 * Math.log10(peak);
+        pct = Math.max(0, Math.min(100, (db - FLOOR_DB) / -FLOOR_DB * 100));
+      }
+      fill.style.height = pct + '%';
+      el.classList.toggle('clipping', peak >= 0.99);
+    }
+  });
+}
+
+// ─── Capture audio via naudiodon (main process) ──────────
+// Plus de Web Audio dans le renderer : les peaks arrivent via IPC 'audio:peaks'
+// et la capture+écriture WAV sont gérées côté Node natif (PortAudio).
+
+async function setupAudio() {
+  const d = getSelectedDevice ? getSelectedDevice() : null;
+  if (!d) {
+    toast('Aucun périphérique audio sélectionné', true);
+    return false;
+  }
+  // Calculer le nombre de canaux requis depuis les tracks enabled
+  let reqChannels = 1;
+  (config.tracks || []).forEach(t => {
+    if (!t.enabled) return;
+    if (t.kind === 'mono' && t.channel + 1 > reqChannels) reqChannels = t.channel + 1;
+    if (t.kind === 'stereo' && t.channels) {
+      t.channels.forEach(c => { if (c + 1 > reqChannels) reqChannels = c + 1; });
+    }
+  });
+  const askChannels = Math.min(reqChannels, d.maxChannels);
+  const sr = 48000;
+
+  const result = await window.api.audio.open(d.id, askChannels, sr);
+  if (!result?.ok) {
+    toast('Erreur ouverture audio : ' + (result?.error || 'inconnue'), true);
+    return false;
+  }
+
+  audioStateInfo = { isOpen: true, channels: result.channels, sampleRate: result.sampleRate };
+  activeTracks = Array.isArray(result.activeTracks) ? result.activeTracks : [];
+
+  if (activeTracks.length === 0) {
+    toast(`Le périphérique fournit ${result.channels} canaux, mais aucune piste active n'a un canal source valide. Active une piste et choisis un canal disponible.`, true);
+    buildVUMeters([]);
+    sessionInfo.textContent = `${result.channels} canal(aux) · ${result.sampleRate} Hz · aucune piste active`;
+    return true; // on reste sur l'écran main, l'utilisateur va corriger
+  }
+
+  buildVUMeters(activeTracks);
+  const trackLabel = activeTracks.length === 1 ? '1 piste' : `${activeTracks.length} pistes`;
+  sessionInfo.textContent = `${trackLabel} · ${result.channels} canaux · ${result.sampleRate} Hz · PortAudio`;
+  return true;
+}
+
+// Recevoir les peaks émis par le main process et mettre à jour les VU
+window.api.on('audio:peaks', (peaks) => {
+  updateVUMeters(peaks);
+});
+
+window.api.on('audio:error', (data) => {
+  toast('Audio : ' + (data?.message || 'erreur'), true);
+});
+
+// ─── Recording control ───────────────────────────────────
+async function startRec() {
+  if (isRecording) return;
+  if (!audioStateInfo.isOpen) {
+    const ok = await setupAudio();
+    if (!ok) return;
+  }
+  const title = sessionTitle.value.trim() || 'session';
+  const res = await window.api.rec.start({ title });
+  if (!res) { toast('Échec démarrage enregistrement (capture audio inactive ?)', true); return; }
+  isRecording = true;
+  isPaused = false;
+  recordingStartMs = Date.now();
+  recordingPausedMs = 0;
+  updateUIForRecording();
+  startTimer();
+  markerList.innerHTML = '';
+  toast('Enregistrement démarré');
+}
+
+async function stopRec() {
+  if (!isRecording) return;
+  isRecording = false;
+  isPaused = false;
+  stopTimer();
+  const folder = await window.api.rec.stop();
+  updateUIForIdle();
+  toast('Session sauvegardée');
+  await refreshHistory();
+}
+
+async function togglePause() {
+  if (!isRecording) return;
+  if (!isPaused) {
+    isPaused = true;
+    pauseStartMs = Date.now();
+    await window.api.rec.pause();
+    stateBadge.textContent = 'PAUSED';
+    stateBadge.className = 'state-badge paused';
+    btnRec.classList.remove('recording');
+  } else {
+    isPaused = false;
+    recordingPausedMs += Date.now() - pauseStartMs;
+    await window.api.rec.resume();
+    stateBadge.textContent = 'REC';
+    stateBadge.className = 'state-badge recording';
+    btnRec.classList.add('recording');
+  }
+}
+
+async function addMarker(noteOverride) {
+  if (!isRecording) return;
+  const note = noteOverride !== undefined ? noteOverride : markerNote.value.trim();
+  const m = await window.api.rec.marker(note);
+  if (m) {
+    const el = document.createElement('div');
+    el.className = 'marker-item';
+    el.innerHTML = `<span class="marker-time">${m.timeStr}</span><span>${m.note || '—'}</span>`;
+    markerList.insertBefore(el, markerList.firstChild);
+    markerNote.value = '';
+  }
+}
+
+function updateUIForRecording() {
+  btnRec.textContent = '●';
+  btnRec.classList.add('recording');
+  btnStop.disabled = false;
+  btnPause.disabled = false;
+  btnMarker.disabled = false;
+  stateBadge.textContent = 'REC';
+  stateBadge.className = 'state-badge recording';
+  timerEl.classList.add('recording');
+  sessionTitle.disabled = true;
+}
+
+function updateUIForIdle() {
+  btnRec.textContent = 'REC';
+  btnRec.classList.remove('recording');
+  btnStop.disabled = true;
+  btnPause.disabled = true;
+  btnMarker.disabled = true;
+  stateBadge.textContent = 'IDLE';
+  stateBadge.className = 'state-badge';
+  timerEl.classList.remove('recording');
+  timerEl.textContent = '00:00:00';
+  sessionTitle.disabled = false;
+}
+
+// ─── Timer ───────────────────────────────────────────────
+function startTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    if (isPaused) return;
+    const elapsed = (Date.now() - recordingStartMs - recordingPausedMs) / 1000;
+    timerEl.textContent = fmtHMS(elapsed);
+  }, 250);
+}
+function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+// Note : l'envoi OSC /podcast/level/N et /podcast/duration est désormais fait
+// directement par le main process à partir de la capture audio naudiodon.
+// Plus besoin de boucle ici.
+
+// ─── History ─────────────────────────────────────────────
+async function refreshHistory() {
+  const sessions = await window.api.sessions.list();
+  historyList.innerHTML = '';
+  if (sessions.length === 0) {
+    historyList.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;text-align:center;">Aucun enregistrement</div>';
+    return;
+  }
+  sessions.forEach(s => {
+    const dur = s.meta.durationMs ? fmtHMS(s.meta.durationMs / 1000) : '?';
+    const markers = s.meta.markers?.length || 0;
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <button class="history-delete" data-action="delete" title="Supprimer cette session">✕</button>
+      <div class="history-title">${s.meta.title || s.folderName}</div>
+      <div class="history-meta">
+        <span>${fmtDate(s.meta.startedAt)}</span>
+        <span>${dur}</span>
+        <span>${s.meta.pairs} paire(s)</span>
+        ${markers ? `<span>${markers} ★</span>` : ''}
+      </div>
+      <div class="history-actions">
+        <button data-action="reveal">Finder</button>
+        <button data-action="open">Ouvrir</button>
+      </div>
+    `;
+    item.querySelector('[data-action="reveal"]').addEventListener('click', e => {
+      e.stopPropagation();
+      window.api.sessions.reveal(s.folder);
+    });
+    item.querySelector('[data-action="open"]').addEventListener('click', e => {
+      e.stopPropagation();
+      window.api.sessions.openFolder(s.folder);
+    });
+    item.querySelector('[data-action="delete"]').addEventListener('click', async e => {
+      e.stopPropagation();
+      const r = await window.api.sessions.delete(s.folder);
+      if (r?.ok) {
+        toast('Session supprimée');
+        await refreshHistory();
+      } else if (r?.cancelled) {
+        // rien à faire
+      } else if (r?.error) {
+        toast('Erreur : ' + r.error, true);
+      }
+    });
+    historyList.appendChild(item);
+  });
+}
+
+// ─── Boutons transport ───────────────────────────────────
+btnRec.addEventListener('click', startRec);
+btnStop.addEventListener('click', stopRec);
+btnPause.addEventListener('click', togglePause);
+btnMarker.addEventListener('click', () => addMarker());
+markerNote.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && isRecording) { e.preventDefault(); addMarker(); }
+});
+
+// Raccourci clavier M pour marker rapide (sauf si on est dans un input)
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'm' || e.key === 'M') { if (isRecording) addMarker(''); }
+  if (e.code === 'Space') { e.preventDefault(); if (isRecording) togglePause(); else startRec(); }
+});
+
+// ─── OSC commands from Chataigne ─────────────────────────
+window.api.on('cmd-rec', (data) => {
+  if (data?.title) sessionTitle.value = data.title;
+  if (!isRecording) startRec();
+});
+window.api.on('cmd-stop', () => { if (isRecording) stopRec(); });
+window.api.on('cmd-pause', () => { if (isRecording) togglePause(); });
+window.api.on('cmd-marker', (data) => { if (isRecording) addMarker(data?.note || ''); });
+window.api.on('cmd-new', async (data) => {
+  if (isRecording) await stopRec();
+  if (data?.title) sessionTitle.value = data.title;
+  setTimeout(() => startRec(), 300);
+});
+window.api.on('master-ready', () => {
+  toast('Master MP3 généré');
+  refreshHistory();
+});
+
+// ─── Entrée dans main screen ─────────────────────────────
+async function enterMainScreen() {
+  document.getElementById('setup-screen').classList.add('hide');
+  document.getElementById('main-screen').classList.remove('hide');
+  btnConfig.classList.remove('hide');
+  btnCloseConfig.classList.add('hide');
+  setupActions.classList.remove('hide'); // re-affiche le bouton pour un éventuel premier lancement futur
+  const ok = await setupAudio();
+  if (!ok) {
+    // Retour au setup
+    document.getElementById('setup-screen').classList.remove('hide');
+    document.getElementById('main-screen').classList.add('hide');
+    btnConfig.classList.add('hide');
+    return;
+  }
+  await refreshHistory();
+}
+
+// ─── Bootstrap ───────────────────────────────────────────
+(async () => {
+  // Afficher version dans le header
+  try {
+    const v = await window.api.app.version();
+    document.getElementById('app-version').textContent = `v${v}`;
+  } catch (_) {}
+
+  config = await window.api.config.get();
+  oscInPort.value = config.oscInPort;
+  oscOutHost.value = config.oscOutHost;
+  oscOutPort.value = config.oscOutPort;
+  oscQueryPort.value = config.oscQueryPort || 7778;
+  outputPath.textContent = config.outputDir;
+  await refreshDevices();
+  updateDeviceCapabilitiesHint();
+  renderTracksEditor();
+  renderExports();
+
+  if (config.firstRun) {
+    // Reste sur setup
+  } else {
+    await enterMainScreen();
+  }
+})();
+</script>
+</body>
+</html>

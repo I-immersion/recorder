@@ -1,0 +1,18 @@
+{
+  "name": "lumiia-podcast",
+  "version": "1.2.0",
+  "description": "Enregistreur podcast multi-pistes LUMIIA piloté OSC",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "LUMIIA",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "electron": "^28.0.0",
+    "ffmpeg-static": "^5.2.0",
+    "naudiodon2": "^2.5.0",
+    "node-osc": "^9.1.0"
+  }
+}
